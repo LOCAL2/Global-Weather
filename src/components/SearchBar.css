@@ -116,9 +116,10 @@
   overflow: hidden;
   box-shadow: 0 12px 48px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(168, 192, 255, 0.1);
   z-index: 9999;
-  animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: slideDown 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   max-height: 400px;
   overflow-y: auto;
+  will-change: transform, opacity;
 }
 
 @keyframes slideDown {
@@ -135,13 +136,64 @@
 .search-result-item {
   padding: 16px 24px;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   border-bottom: 1px solid rgba(168, 192, 255, 0.08);
   user-select: none;
   display: block;
   width: 100%;
   position: relative;
   z-index: 1;
+  animation: resultFadeIn 0.2s cubic-bezier(0.4, 0, 0.2, 1) backwards;
+}
+
+@keyframes resultFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Loading skeleton */
+.search-result-item.loading-item {
+  cursor: default;
+  pointer-events: none;
+  animation: none;
+}
+
+.skeleton-line {
+  background: linear-gradient(
+    90deg,
+    rgba(168, 192, 255, 0.08) 0%,
+    rgba(168, 192, 255, 0.15) 50%,
+    rgba(168, 192, 255, 0.08) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+.skeleton-name {
+  width: 60%;
+  height: 20px;
+  margin-bottom: 8px;
+}
+
+.skeleton-details {
+  width: 40%;
+  height: 16px;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 .search-result-item:last-child {
