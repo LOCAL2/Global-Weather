@@ -47,6 +47,18 @@ body {
   flex-direction: column;
   padding: 40px;
   pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+.ui-overlay.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ui-overlay.visible {
+  opacity: 1;
+  pointer-events: none;
 }
 
 .ui-overlay > * {
@@ -56,8 +68,11 @@ body {
 .header {
   text-align: center;
   margin-bottom: 40px;
-  animation: slideDown 0.8s ease;
   pointer-events: none;
+}
+
+.ui-overlay.visible .header {
+  animation: slideDown 0.8s ease 0s both;
 }
 
 @keyframes slideDown {
@@ -113,10 +128,14 @@ body {
   justify-content: center;
   align-items: center;
   margin-bottom: 20px;
-  animation: fadeIn 1s ease 0.2s both;
   position: relative;
   z-index: 100;
   width: 100%;
+  opacity: 0;
+}
+
+.ui-overlay.visible .search-section {
+  animation: fadeIn 1s ease 0.1s both;
 }
 
 .controls-section {
@@ -124,8 +143,12 @@ body {
   justify-content: center;
   gap: 12px;
   margin-bottom: 20px;
-  animation: fadeIn 1s ease 0.3s both;
   pointer-events: auto;
+  opacity: 0;
+}
+
+.ui-overlay.visible .controls-section {
+  animation: fadeIn 1s ease 0.3s both;
 }
 
 .comparison-toggle {
@@ -189,6 +212,63 @@ body {
   border-color: rgba(100, 200, 100, 0.5);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(100, 200, 100, 0.3);
+}
+
+.refresh-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(168, 192, 255, 0.08);
+  border: 1px solid rgba(168, 192, 255, 0.2);
+  color: rgba(168, 192, 255, 0.8);
+  padding: 10px 16px;
+  border-radius: 50px;
+  font-size: 13px;
+  font-weight: 600;
+  backdrop-filter: blur(10px);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.refresh-btn svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2;
+  transition: transform 0.3s ease;
+}
+
+.refresh-btn:hover:not(:disabled) {
+  background: rgba(168, 192, 255, 0.15);
+  border-color: rgba(168, 192, 255, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(168, 192, 255, 0.3);
+}
+
+.refresh-btn:hover:not(:disabled) svg {
+  transform: rotate(-180deg);
+}
+
+.refresh-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.refresh-btn.refreshing {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.refresh-btn.refreshing svg {
+  animation: rotateRefresh 1s linear infinite;
+}
+
+.refresh-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+@keyframes rotateRefresh {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .comparison-grid {
@@ -478,11 +558,15 @@ body {
   justify-content: center;
   flex: 1;
   align-items: flex-start;
-  animation: fadeIn 1s ease 0.4s both;
   position: relative;
   z-index: 1;
   transition: margin-top 0.3s ease;
   pointer-events: none;
+  opacity: 0;
+}
+
+.ui-overlay.visible .weather-section {
+  animation: fadeIn 1s ease 0.5s both;
 }
 
 .weather-section > * {
@@ -584,6 +668,11 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.recent-searches-panel.minimized {
+  max-height: 60px;
 }
 
 @keyframes slideInRight {
@@ -607,10 +696,104 @@ body {
   color: rgba(168, 192, 255, 0.95);
   text-transform: uppercase;
   letter-spacing: 0.8px;
-  padding: 16px 18px 14px 18px;
-  border-bottom: 2px solid rgba(168, 192, 255, 0.2);
+  padding: 16px 18px 12px 18px;
   background: linear-gradient(180deg, rgba(168, 192, 255, 0.08) 0%, transparent 100%);
   flex-shrink: 0;
+}
+
+.recent-search-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: rgba(168, 192, 255, 0.08);
+  border: 1px solid rgba(168, 192, 255, 0.2);
+  border-radius: 12px;
+  padding: 8px 12px;
+  margin: 0 12px 12px 12px;
+  transition: all 0.3s ease;
+}
+
+.recent-search-input-wrapper:focus-within {
+  background: rgba(168, 192, 255, 0.12);
+  border-color: rgba(168, 192, 255, 0.4);
+  box-shadow: 0 0 0 3px rgba(168, 192, 255, 0.1);
+}
+
+.recent-search-icon {
+  width: 16px;
+  height: 16px;
+  color: rgba(168, 192, 255, 0.6);
+  margin-right: 8px;
+  flex-shrink: 0;
+  stroke-width: 2;
+}
+
+.recent-search-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: white;
+  font-size: 13px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.recent-search-input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.recent-search-clear {
+  background: rgba(168, 192, 255, 0.15);
+  border: 1px solid rgba(168, 192, 255, 0.25);
+  border-radius: 6px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  margin-left: 6px;
+}
+
+.recent-search-clear svg {
+  width: 12px;
+  height: 12px;
+  color: rgba(168, 192, 255, 0.7);
+  stroke-width: 2.5;
+}
+
+.recent-search-clear:hover {
+  background: rgba(255, 80, 80, 0.2);
+  border-color: rgba(255, 80, 80, 0.4);
+}
+
+.recent-search-clear:hover svg {
+  color: rgba(255, 120, 120, 1);
+}
+
+.recent-no-results {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+  color: rgba(255, 255, 255, 0.4);
+  text-align: center;
+}
+
+.recent-no-results svg {
+  width: 32px;
+  height: 32px;
+  margin-bottom: 12px;
+  stroke-width: 2;
+  opacity: 0.5;
+}
+
+.recent-no-results p {
+  font-size: 14px;
+  margin: 0;
 }
 
 .recent-searches-panel .recent-header svg {
@@ -655,6 +838,42 @@ body {
   padding: 3px 8px;
   border-radius: 12px;
   letter-spacing: 0.5px;
+}
+
+.recent-minimize-btn {
+  background: rgba(168, 192, 255, 0.1);
+  border: 1px solid rgba(168, 192, 255, 0.2);
+  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.recent-minimize-btn svg {
+  width: 16px;
+  height: 16px;
+  color: rgba(168, 192, 255, 0.7);
+  stroke-width: 2.5;
+  transition: transform 0.2s ease;
+}
+
+.recent-minimize-btn:hover {
+  background: rgba(168, 192, 255, 0.2);
+  border-color: rgba(168, 192, 255, 0.4);
+  transform: scale(1.05);
+}
+
+.recent-minimize-btn:hover svg {
+  color: rgba(168, 192, 255, 1);
+}
+
+.recent-minimize-btn:active {
+  transform: scale(0.95);
 }
 
 .recent-searches-panel .recent-item {
@@ -787,6 +1006,555 @@ body {
     font-size: 24px;
     flex-direction: column;
     gap: 8px;
+  }
+}
+
+/* Settings Button - Top Right */
+.settings-btn {
+  position: fixed;
+  top: 40px;
+  right: 180px;
+  height: 44px;
+  padding: 0 18px;
+  border-radius: 50px;
+  background: linear-gradient(135deg, rgba(168, 192, 255, 0.15) 0%, rgba(100, 150, 255, 0.1) 100%);
+  border: 1.5px solid rgba(168, 192, 255, 0.3);
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(20px);
+  box-shadow: 
+    0 4px 16px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  z-index: 1000;
+  white-space: nowrap;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  opacity: 0;
+}
+
+.app:has(.ui-overlay.visible) .settings-btn {
+  animation: fadeIn 1s ease 0.6s both;
+}
+
+.settings-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50px;
+  padding: 1.5px;
+  background: linear-gradient(135deg, rgba(168, 192, 255, 0.5), rgba(100, 150, 255, 0.3));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.settings-btn:hover::before {
+  opacity: 1;
+}
+
+.settings-btn svg {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2;
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+  transition: transform 0.6s ease;
+}
+
+.settings-btn:hover svg {
+  transform: rotate(90deg);
+}
+
+.settings-btn-text {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.settings-btn:hover {
+  background: linear-gradient(135deg, rgba(168, 192, 255, 0.25) 0%, rgba(100, 150, 255, 0.2) 100%);
+  border-color: rgba(168, 192, 255, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 
+    0 8px 24px rgba(168, 192, 255, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.settings-btn:active {
+  transform: translateY(0);
+  box-shadow: 
+    0 4px 12px rgba(168, 192, 255, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Credit Button - Top Right */
+.credit-btn {
+  position: fixed;
+  top: 40px;
+  right: 40px;
+  height: 44px;
+  padding: 0 18px;
+  border-radius: 50px;
+  background: linear-gradient(135deg, rgba(168, 192, 255, 0.15) 0%, rgba(100, 150, 255, 0.1) 100%);
+  border: 1.5px solid rgba(168, 192, 255, 0.3);
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(20px);
+  box-shadow: 
+    0 4px 16px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  z-index: 1000;
+  white-space: nowrap;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  opacity: 0;
+}
+
+.app:has(.ui-overlay.visible) .credit-btn {
+  animation: fadeIn 1s ease 0.7s both;
+}
+
+.credit-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50px;
+  padding: 1.5px;
+  background: linear-gradient(135deg, rgba(168, 192, 255, 0.5), rgba(100, 150, 255, 0.3));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.credit-btn:hover::before {
+  opacity: 1;
+}
+
+.credit-btn svg {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2.5;
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+.credit-btn-text {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.credit-btn:hover {
+  background: linear-gradient(135deg, rgba(168, 192, 255, 0.25) 0%, rgba(100, 150, 255, 0.2) 100%);
+  border-color: rgba(168, 192, 255, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 
+    0 8px 24px rgba(168, 192, 255, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.credit-btn:active {
+  transform: translateY(0);
+  box-shadow: 
+    0 4px 12px rgba(168, 192, 255, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Credit Card */
+.credit-card {
+  position: fixed;
+  top: 95px;
+  right: 40px;
+  width: 300px;
+  background: linear-gradient(135deg, rgba(26, 26, 46, 0.98) 0%, rgba(15, 15, 30, 0.98) 100%);
+  backdrop-filter: blur(40px);
+  border: 2px solid rgba(168, 192, 255, 0.3);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 
+    0 20px 60px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(168, 192, 255, 0.2),
+    inset 0 1px 0 rgba(168, 192, 255, 0.15);
+  z-index: 999;
+  animation: creditCardSlideDown 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes creditCardSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.credit-card-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(168, 192, 255, 0.08);
+  border: 1px solid rgba(168, 192, 255, 0.2);
+  color: rgba(168, 192, 255, 0.8);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.credit-card-close:hover {
+  background: rgba(255, 80, 80, 0.2);
+  border-color: rgba(255, 80, 80, 0.4);
+  color: rgba(255, 120, 120, 1);
+  transform: scale(1.1) rotate(90deg);
+}
+
+.credit-link {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  padding: 8px;
+  border-radius: 12px;
+}
+
+.credit-link:hover {
+  background: rgba(168, 192, 255, 0.1);
+  transform: translateX(4px);
+}
+
+.credit-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 2px solid rgba(168, 192, 255, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.credit-link:hover .credit-avatar {
+  border-color: rgba(168, 192, 255, 0.6);
+  transform: scale(1.05);
+  box-shadow: 0 6px 16px rgba(168, 192, 255, 0.3);
+}
+
+.credit-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.credit-name {
+  color: white;
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.credit-platform {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(66, 103, 178, 1);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.credit-platform svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Settings Modal */
+.settings-modal {
+  position: fixed;
+  top: 95px;
+  right: 180px;
+  width: 380px;
+  background: linear-gradient(135deg, rgba(26, 26, 46, 0.98) 0%, rgba(15, 15, 30, 0.98) 100%);
+  backdrop-filter: blur(40px);
+  border: 2px solid rgba(168, 192, 255, 0.3);
+  border-radius: 20px;
+  box-shadow: 
+    0 20px 60px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(168, 192, 255, 0.2),
+    inset 0 1px 0 rgba(168, 192, 255, 0.15);
+  z-index: 999;
+  animation: creditCardSlideDown 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  overflow: hidden;
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 24px 20px 24px;
+  border-bottom: 2px solid rgba(168, 192, 255, 0.2);
+  background: linear-gradient(180deg, rgba(168, 192, 255, 0.08) 0%, transparent 100%);
+}
+
+.settings-header h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  color: white;
+  background: linear-gradient(135deg, #ffffff 0%, #a8c0ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.settings-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(168, 192, 255, 0.08);
+  border: 1px solid rgba(168, 192, 255, 0.2);
+  color: rgba(168, 192, 255, 0.8);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.settings-close:hover {
+  background: rgba(255, 80, 80, 0.2);
+  border-color: rgba(255, 80, 80, 0.4);
+  color: rgba(255, 120, 120, 1);
+  transform: scale(1.1) rotate(90deg);
+}
+
+.settings-content {
+  padding: 24px;
+}
+
+.setting-item {
+  margin-bottom: 20px;
+}
+
+.setting-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(168, 192, 255, 0.9);
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.setting-label svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2;
+}
+
+.setting-control {
+  display: flex;
+  gap: 10px;
+}
+
+.unit-option {
+  flex: 1;
+  padding: 12px 16px;
+  background: rgba(168, 192, 255, 0.08);
+  border: 1.5px solid rgba(168, 192, 255, 0.2);
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.unit-option:hover {
+  background: rgba(168, 192, 255, 0.15);
+  border-color: rgba(168, 192, 255, 0.4);
+  color: rgba(255, 255, 255, 0.9);
+  transform: translateY(-2px);
+}
+
+.unit-option.active {
+  background: linear-gradient(135deg, rgba(168, 192, 255, 0.3) 0%, rgba(100, 150, 255, 0.2) 100%);
+  border-color: rgba(168, 192, 255, 0.6);
+  color: white;
+  box-shadow: 0 4px 12px rgba(168, 192, 255, 0.3);
+}
+
+.settings-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(168, 192, 255, 0.3), transparent);
+  margin: 24px 0;
+}
+
+.settings-coming-soon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px;
+  background: rgba(168, 192, 255, 0.05);
+  border: 1px dashed rgba(168, 192, 255, 0.3);
+  border-radius: 12px;
+  text-align: center;
+}
+
+.settings-coming-soon svg {
+  width: 32px;
+  height: 32px;
+  color: rgba(168, 192, 255, 0.5);
+  stroke-width: 2;
+}
+
+.settings-coming-soon p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .settings-btn {
+    top: 20px;
+    right: 140px;
+    height: 40px;
+    padding: 0 14px;
+  }
+
+  .settings-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .settings-btn-text {
+    font-size: 13px;
+  }
+
+  .settings-modal {
+    top: 70px;
+    right: 20px;
+    left: 20px;
+    width: auto;
+  }
+
+  .credit-btn {
+    top: 20px;
+    right: 20px;
+    height: 40px;
+    padding: 0 14px;
+  }
+
+  .credit-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .credit-btn-text {
+    font-size: 13px;
+  }
+
+  .credit-card {
+    top: 70px;
+    right: 20px;
+    width: calc(100vw - 40px);
+    max-width: 280px;
+    padding: 20px;
+  }
+
+  .credit-avatar {
+    width: 48px;
+    height: 48px;
+  }
+
+  .credit-name {
+    font-size: 15px;
+  }
+
+  .credit-platform {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .settings-btn-text,
+  .credit-btn-text {
+    display: none;
+  }
+
+  .settings-btn {
+    top: 16px;
+    right: 70px;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+  }
+
+  .settings-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .settings-modal {
+    top: 64px;
+    right: 16px;
+    left: 16px;
+  }
+
+  .settings-content {
+    padding: 20px;
+  }
+
+  .unit-option {
+    font-size: 13px;
+    padding: 10px 12px;
+  }
+
+  .credit-btn {
+    top: 16px;
+    right: 16px;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+  }
+
+  .credit-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .credit-card {
+    top: 64px;
+    right: 16px;
+    left: 16px;
+    width: auto;
+    max-width: none;
   }
 }
 

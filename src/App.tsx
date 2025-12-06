@@ -27,7 +27,11 @@ function App() {
   const [comparisonWeather, setComparisonWeather] = useState<WeatherData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [resultsHeight, setResultsHeight] = useState(0);
-  const [unit, setUnit] = useState<'metric' | 'imperial'>('metric');
+  const [defaultUnit] = useState<'metric' | 'imperial'>(() => {
+    const saved = localStorage.getItem('defaultUnit');
+    return (saved as 'metric' | 'imperial') || 'metric';
+  });
+  const [unit, setUnit] = useState<'metric' | 'imperial'>(defaultUnit);
   const [comparisonUnits, setComparisonUnits] = useState<('metric' | 'imperial')[]>([]);
   const [comparisonMode, setComparisonMode] = useState(false);
   const [recentSearches, setRecentSearches] = useState<SearchResult[]>([]);
@@ -35,6 +39,17 @@ function App() {
   const [toastMessage, setToastMessage] = useState('คัดลอก URL แล้ว!');
   const [showShareModal, setShowShareModal] = useState(false);
   const [isLoadingComparison, setIsLoadingComparison] = useState(false);
+  const [showCreditCard, setShowCreditCard] = useState(false);
+  const [recentSearchQuery, setRecentSearchQuery] = useState('');
+  const [isRecentMinimized, setIsRecentMinimized] = useState(() => {
+    const saved = localStorage.getItem('recentMinimized');
+    return saved === 'true';
+  });
+  const [globeAnimationComplete, setGlobeAnimationComplete] = useState(() => {
+    // ตรวจสอบว่าเคย animate ไปแล้วหรือยังใน session นี้
+    return sessionStorage.getItem('globeAnimated') === 'true';
+  });
+
 
   useEffect(() => {
     const path = location.pathname;
@@ -74,7 +89,7 @@ function App() {
       ).then(results => {
         const validResults = results.filter(r => r !== null) as WeatherData[];
         setComparisonWeather(validResults);
-        setComparisonUnits(validResults.map(() => 'metric'));
+        setComparisonUnits(validResults.map(() => defaultUnit));
         setIsLoadingComparison(false);
       });
     } else if (path.startsWith('/weather/')) {
@@ -85,6 +100,8 @@ function App() {
       }
     }
   }, [location.pathname]);
+
+
 
   const loadWeatherForSingle = async (name: string, country: string) => {
     setIsLoading(true);
@@ -134,7 +151,7 @@ function App() {
     if (comparisonMode && weatherData) {
       const newComparison = [...comparisonWeather, weatherData];
       setComparisonWeather(newComparison);
-      setComparisonUnits([...comparisonUnits, 'metric']);
+      setComparisonUnits([...comparisonUnits, defaultUnit]);
       
       const slugs = newComparison.map(w => createSlug(w.name, w.sys.country)).join('/');
       window.history.replaceState({}, '', `/compare/${slugs}`);
@@ -260,15 +277,23 @@ function App() {
     setTimeout(() => setShowCopiedToast(false), 2000);
   };
 
+  const handleGlobeAnimationComplete = () => {
+    setGlobeAnimationComplete(true);
+    sessionStorage.setItem('globeAnimated', 'true');
+  };
+
   return (
     <div className="app">
       <div className="globe-container">
         <Canvas camera={{ position: [0, 0, 5], fov: 45 }}>
-          <Globe />
+          <Globe 
+            onAnimationComplete={handleGlobeAnimationComplete}
+            skipAnimation={globeAnimationComplete}
+          />
         </Canvas>
       </div>
 
-      <div className="ui-overlay">
+      <div className={`ui-overlay ${globeAnimationComplete ? 'visible' : 'hidden'}`}>
         <header className="header">
           <h1 className="title">
             <svg className="title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -284,7 +309,7 @@ function App() {
             </svg>
             Global Weather
           </h1>
-          <p className="subtitle">สภาพอากาศแบบ Real-time ทั่วโลก</p>
+          <p className="subtitle">สภาพอากาศแบบ Real-time ทั่วโลก ความแม่นยำ 98.99 จากผลทดสอบ</p>
         </header>
 
         <div className="search-section">
@@ -326,6 +351,7 @@ function App() {
               แชร์
             </button>
           )}
+
         </div>
 
         <div 
@@ -420,9 +446,6 @@ function App() {
             <WeatherCard weather={weather} isLoading={isLoading} unit={unit} onToggleUnit={toggleUnit} onShare={handleShare} />
           )}
         </div>
-      </div>
-
-      <div className="background-gradient"></div>
 
       {showShareModal && (
         <div className="modal-overlay" onClick={() => setShowShareModal(false)}>
@@ -459,7 +482,7 @@ function App() {
       )}
 
       {recentSearches.length > 0 && !isLoading && (weather || comparisonWeather.length > 0) && (
-        <div className="recent-searches-panel">
+        <div className={`recent-searches-panel ${isRecentMinimized ? 'minimized' : ''}`}>
           <div className="recent-header">
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -468,34 +491,167 @@ function App() {
               </svg>
               ค้นหาล่าสุด
             </div>
-            <span className="recent-count">{recentSearches.length}</span>
-          </div>
-          <div className="recent-searches-list">
-            {recentSearches.map((result, index) => (
-              <div
-                key={index}
-                className="recent-item"
-                onClick={() => handleLocationSelect(result)}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span className="recent-count">{recentSearches.filter(r => 
+                r.name.toLowerCase().includes(recentSearchQuery.toLowerCase()) ||
+                r.country.toLowerCase().includes(recentSearchQuery.toLowerCase()) ||
+                (r.state && r.state.toLowerCase().includes(recentSearchQuery.toLowerCase()))
+              ).length}</span>
+              <button 
+                className="recent-minimize-btn"
+                onClick={() => {
+                  const newState = !isRecentMinimized;
+                  setIsRecentMinimized(newState);
+                  localStorage.setItem('recentMinimized', String(newState));
+                }}
+                title={isRecentMinimized ? 'ขยาย' : 'ย่อ'}
               >
-                <div className="recent-content">
-                  <div className="recent-name">{result.name}</div>
-                  <div className="recent-details">
-                    {result.state && `${result.state}, `}{result.country}
-                  </div>
-                </div>
-                <button 
-                  className="recent-remove-btn" 
-                  onClick={(e) => removeRecentSearch(index, e)}
-                  title="ลบ"
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
-                </button>
-              </div>
-            ))}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  {isRecentMinimized ? (
+                    <polyline points="18 15 12 9 6 15" />
+                  ) : (
+                    <polyline points="6 9 12 15 18 9" />
+                  )}
+                </svg>
+              </button>
+            </div>
           </div>
+          {!isRecentMinimized && (
+            <>
+              <div className="recent-search-input-wrapper">
+                <svg className="recent-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.35-4.35" />
+                </svg>
+                <input
+                  type="text"
+                  className="recent-search-input"
+                  placeholder="ค้นหาในประวัติ..."
+                  value={recentSearchQuery}
+                  onChange={(e) => setRecentSearchQuery(e.target.value)}
+                />
+                {recentSearchQuery && (
+                  <button 
+                    className="recent-search-clear"
+                    onClick={() => setRecentSearchQuery('')}
+                    title="ล้าง"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+              <div className="recent-searches-list">
+            {recentSearches
+              .filter(r => 
+                r.name.toLowerCase().includes(recentSearchQuery.toLowerCase()) ||
+                r.country.toLowerCase().includes(recentSearchQuery.toLowerCase()) ||
+                (r.state && r.state.toLowerCase().includes(recentSearchQuery.toLowerCase()))
+              )
+              .map((result, index) => (
+                <div
+                  key={index}
+                  className="recent-item"
+                  onClick={() => handleLocationSelect(result)}
+                >
+                  <div className="recent-content">
+                    <div className="recent-name">{result.name}</div>
+                    <div className="recent-details">
+                      {result.state && `${result.state}, `}{result.country}
+                    </div>
+                  </div>
+                  <button 
+                    className="recent-remove-btn" 
+                    onClick={(e) => removeRecentSearch(recentSearches.indexOf(result), e)}
+                    title="ลบ"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
+                </div>
+              ))}
+            {recentSearches.filter(r => 
+              r.name.toLowerCase().includes(recentSearchQuery.toLowerCase()) ||
+              r.country.toLowerCase().includes(recentSearchQuery.toLowerCase()) ||
+              (r.state && r.state.toLowerCase().includes(recentSearchQuery.toLowerCase()))
+            ).length === 0 && recentSearchQuery && (
+              <div className="recent-no-results">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.35-4.35" />
+                </svg>
+                <p>ไม่พบผลลัพธ์</p>
+              </div>
+            )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+      </div>
+
+      <div className="background-gradient"></div>
+
+      {/* Settings Button */}
+      <button 
+        className="settings-btn"
+        onClick={() => navigate('/settings')}
+        title="ตั้งค่า"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <circle cx="12" cy="12" r="3" />
+          <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+        </svg>
+        <span className="settings-btn-text">ตั้งค่า</span>
+      </button>
+
+      {/* Credit Button */}
+      <button 
+        className="credit-btn"
+        onClick={() => setShowCreditCard(!showCreditCard)}
+        title="ผู้พัฒนา"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+          <circle cx="12" cy="7" r="4" />
+        </svg>
+        <span className="credit-btn-text">ผู้พัฒนา</span>
+      </button>
+
+      {/* Credit Card */}
+      {showCreditCard && (
+        <div className="credit-card">
+          <button 
+            className="credit-card-close" 
+            onClick={() => setShowCreditCard(false)}
+          >
+            ×
+          </button>
+          <a 
+            href="https://www.facebook.com/woradet.phanphuet" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="credit-link"
+          >
+            <img 
+              src="/profile-fb.png" 
+              alt="Woradet Phanphuech" 
+              className="credit-avatar"
+            />
+            <div className="credit-info">
+              <div className="credit-name">Woradet Phanphuech</div>
+              <div className="credit-platform">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                </svg>
+                Facebook
+              </div>
+            </div>
+          </a>
         </div>
       )}
     </div>

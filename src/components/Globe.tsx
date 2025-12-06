@@ -24,17 +24,36 @@ function Earth() {
   );
 }
 
-function CameraAnimation() {
+function CameraAnimation({ 
+  onComplete, 
+  skipAnimation = false 
+}: { 
+  onComplete?: () => void;
+  skipAnimation?: boolean;
+}) {
   const { camera } = useThree();
   const startPosition = useRef(new THREE.Vector3(0, 2, 25));
   const targetPosition = useRef(new THREE.Vector3(0, 0, 5));
   const progress = useRef(0);
-  const isAnimating = useRef(true);
+  const isAnimating = useRef(!skipAnimation);
+  const hasCompleted = useRef(false);
 
   useEffect(() => {
-    camera.position.copy(startPosition.current);
-    camera.lookAt(0, 0, 0);
-  }, [camera]);
+    if (skipAnimation) {
+      // ถ้า skip animation ให้ไปที่ตำแหน่งสุดท้ายเลย
+      camera.position.copy(targetPosition.current);
+      camera.lookAt(0, 0, 0);
+      
+      // เรียก onComplete ทันที
+      if (!hasCompleted.current && onComplete) {
+        hasCompleted.current = true;
+        onComplete();
+      }
+    } else {
+      camera.position.copy(startPosition.current);
+      camera.lookAt(0, 0, 0);
+    }
+  }, [camera, skipAnimation, onComplete]);
 
   useFrame((_state, delta) => {
     if (isAnimating.current && progress.current < 1) {
@@ -43,6 +62,12 @@ function CameraAnimation() {
       if (progress.current >= 1) {
         progress.current = 1;
         isAnimating.current = false;
+        
+        // Call onComplete callback when animation finishes
+        if (!hasCompleted.current && onComplete) {
+          hasCompleted.current = true;
+          onComplete();
+        }
       }
 
       // Easing function (ease-out cubic)
@@ -56,20 +81,93 @@ function CameraAnimation() {
   return null;
 }
 
-export default function Globe() {
+function Sun() {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const sunTexture = useLoader(THREE.TextureLoader, '/8k_sun.jpg');
+
+  useFrame(() => {
+    if (meshRef.current) {
+      meshRef.current.rotation.y += 0.0002;
+      meshRef.current.rotation.x += 0.0001;
+    }
+  });
+
+  return (
+    <group position={[10, 5, -12]}>
+      {/* Main sun body with texture */}
+      <mesh ref={meshRef}>
+        <sphereGeometry args={[2, 64, 64]} />
+        <meshStandardMaterial 
+          map={sunTexture}
+          emissive="#FF6B00"
+          emissiveIntensity={1.5}
+          roughness={1}
+          metalness={0}
+          toneMapped={false}
+        />
+      </mesh>
+      
+      {/* Directional sun light - creates day/night effect */}
+      <directionalLight 
+        position={[0, 0, 5]} 
+        intensity={2.5} 
+        color="#FFA500"
+        castShadow
+      />
+      <pointLight intensity={2} color="#FFA500" distance={40} decay={2} />
+    </group>
+  );
+}
+
+function Moon() {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const moonTexture = useLoader(THREE.TextureLoader, '/8k_moon.jpg');
+
+  useFrame(() => {
+    if (meshRef.current) {
+      meshRef.current.rotation.y += 0.0001;
+    }
+  });
+
+  return (
+    <group position={[-10, -3, -12]}>
+      {/* Moon with texture */}
+      <mesh ref={meshRef}>
+        <sphereGeometry args={[1.2, 64, 64]} />
+        <meshStandardMaterial 
+          map={moonTexture}
+          roughness={0.9}
+          metalness={0}
+        />
+      </mesh>
+      
+      {/* Subtle moon light */}
+      <pointLight intensity={0.3} color="#B0C4DE" distance={30} decay={2} />
+    </group>
+  );
+}
+
+export default function Globe({ 
+  onAnimationComplete, 
+  skipAnimation = false 
+}: { 
+  onAnimationComplete?: () => void;
+  skipAnimation?: boolean;
+}) {
   return (
     <>
       <OrbitControls enablePan={false} minDistance={3} maxDistance={15} rotateSpeed={0.5} />
       <Stars radius={300} depth={60} count={8000} factor={7} fade speed={1} />
-      <ambientLight intensity={0.8} />
-      <pointLight position={[10, 10, 10]} intensity={2} />
-      <pointLight position={[-10, -10, -10]} intensity={0.5} />
+      <ambientLight intensity={0.6} />
+      <hemisphereLight intensity={0.5} groundColor="#444444" />
 
       <Suspense fallback={null}>
         <Earth />
+        <Sun />
+        <Moon />
       </Suspense>
       
-      <CameraAnimation />
+      <CameraAnimation onComplete={onAnimationComplete} skipAnimation={skipAnimation} />
     </>
   );
 }
