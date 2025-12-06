@@ -1,14 +1,20 @@
-import { useRef, Suspense, useEffect } from 'react';
+import { useRef, Suspense, useEffect, useState } from 'react';
 import { useFrame, useLoader, useThree } from '@react-three/fiber';
 import { OrbitControls, Stars } from '@react-three/drei';
 import * as THREE from 'three';
 
-function Earth() {
+function Earth({ onLoad }: { onLoad?: () => void }) {
   const meshRef = useRef<THREE.Mesh>(null);
   const [colorMap, bumpMap] = useLoader(THREE.TextureLoader, [
     'https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg',
     'https://unpkg.com/three-globe/example/img/earth-topology.png',
   ]);
+
+  useEffect(() => {
+    if (colorMap && bumpMap && onLoad) {
+      onLoad();
+    }
+  }, [colorMap, bumpMap, onLoad]);
 
   useFrame(() => {
     if (meshRef.current) {
@@ -26,16 +32,18 @@ function Earth() {
 
 function CameraAnimation({ 
   onComplete, 
-  skipAnimation = false 
+  skipAnimation = false,
+  startAnimation = false
 }: { 
   onComplete?: () => void;
   skipAnimation?: boolean;
+  startAnimation?: boolean;
 }) {
   const { camera } = useThree();
   const startPosition = useRef(new THREE.Vector3(0, 2, 25));
   const targetPosition = useRef(new THREE.Vector3(0, 0, 5));
   const progress = useRef(0);
-  const isAnimating = useRef(!skipAnimation);
+  const isAnimating = useRef(false);
   const hasCompleted = useRef(false);
 
   useEffect(() => {
@@ -54,6 +62,13 @@ function CameraAnimation({
       camera.lookAt(0, 0, 0);
     }
   }, [camera, skipAnimation, onComplete]);
+
+  useEffect(() => {
+    // เริ่ม animation เมื่อ texture โหลดเสร็จแล้ว
+    if (startAnimation && !skipAnimation) {
+      isAnimating.current = true;
+    }
+  }, [startAnimation, skipAnimation]);
 
   useFrame((_state, delta) => {
     if (isAnimating.current && progress.current < 1) {
@@ -81,9 +96,15 @@ function CameraAnimation({
   return null;
 }
 
-function Sun() {
+function Sun({ onLoad }: { onLoad?: () => void }) {
   const meshRef = useRef<THREE.Mesh>(null);
   const sunTexture = useLoader(THREE.TextureLoader, '/8k_sun.jpg');
+
+  useEffect(() => {
+    if (sunTexture && onLoad) {
+      onLoad();
+    }
+  }, [sunTexture, onLoad]);
 
   useFrame(() => {
     if (meshRef.current) {
@@ -119,9 +140,15 @@ function Sun() {
   );
 }
 
-function Moon() {
+function Moon({ onLoad }: { onLoad?: () => void }) {
   const meshRef = useRef<THREE.Mesh>(null);
   const moonTexture = useLoader(THREE.TextureLoader, '/8k_moon.jpg');
+
+  useEffect(() => {
+    if (moonTexture && onLoad) {
+      onLoad();
+    }
+  }, [moonTexture, onLoad]);
 
   useFrame(() => {
     if (meshRef.current) {
@@ -154,6 +181,13 @@ export default function Globe({
   onAnimationComplete?: () => void;
   skipAnimation?: boolean;
 }) {
+  const [loadedCount, setLoadedCount] = useState(0);
+  const allTexturesLoaded = loadedCount >= 3;
+
+  const handleTextureLoad = () => {
+    setLoadedCount((prev) => prev + 1);
+  };
+
   return (
     <>
       <OrbitControls enablePan={false} minDistance={3} maxDistance={15} rotateSpeed={0.5} />
@@ -162,12 +196,16 @@ export default function Globe({
       <hemisphereLight intensity={0.5} groundColor="#444444" />
 
       <Suspense fallback={null}>
-        <Earth />
-        <Sun />
-        <Moon />
+        <Earth onLoad={handleTextureLoad} />
+        <Sun onLoad={handleTextureLoad} />
+        <Moon onLoad={handleTextureLoad} />
       </Suspense>
       
-      <CameraAnimation onComplete={onAnimationComplete} skipAnimation={skipAnimation} />
+      <CameraAnimation 
+        onComplete={onAnimationComplete} 
+        skipAnimation={skipAnimation}
+        startAnimation={allTexturesLoaded}
+      />
     </>
   );
 }
